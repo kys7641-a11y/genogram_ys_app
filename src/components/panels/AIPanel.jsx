@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Sparkles, X, Loader2, Settings, ChevronDown, AlertCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Sparkles, X, Loader2, ChevronDown, AlertCircle, Settings } from 'lucide-react';
 
 const MODELS = [
   { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash', desc: '최신 · 빠름 · 추천' },
@@ -9,15 +9,13 @@ const MODELS = [
   { id: '__custom__', label: '직접 입력', desc: '모델 ID를 직접 입력' },
 ];
 
-const API_KEY_STORAGE = 'genogram_google_api_key';
 const MODEL_STORAGE = 'genogram_google_model';
 
 const renderResult = (text) => {
   if (!text) return null;
   return text.split('\n').map((line, i) => {
     if (/^\*\*(.+)\*\*/.test(line)) {
-      const heading = line.replace(/\*\*/g, '');
-      return <p key={i} className="font-bold text-slate-800 mt-4 mb-1">{heading}</p>;
+      return <p key={i} className="font-bold text-slate-800 mt-4 mb-1">{line.replace(/\*\*/g, '')}</p>;
     }
     if (line.startsWith('- ') || line.startsWith('• ')) {
       return <p key={i} className="text-slate-600 text-sm pl-3 before:content-['•'] before:mr-2 before:text-indigo-400">{line.slice(2)}</p>;
@@ -28,34 +26,19 @@ const renderResult = (text) => {
 };
 
 export const AIPanel = ({ onClose, onRunAnalysis, isLoading, result, error }) => {
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem(API_KEY_STORAGE) || '');
   const [modelId, setModelId] = useState(() => localStorage.getItem(MODEL_STORAGE) || 'gemini-2.5-flash');
   const [customModel, setCustomModel] = useState('');
-  const [showKey, setShowKey] = useState(false);
-  const [showSettings, setShowSettings] = useState(!localStorage.getItem(API_KEY_STORAGE));
+  const [showSettings, setShowSettings] = useState(false);
 
-  const handleApiKeyChange = (val) => {
-    setApiKey(val);
-    localStorage.setItem(API_KEY_STORAGE, val);
-  };
+  const resolvedModelId = modelId === '__custom__' ? customModel.trim() : modelId;
 
   const handleModelChange = (val) => {
     setModelId(val);
     localStorage.setItem(MODEL_STORAGE, val);
   };
 
-  const resolvedModelId = modelId === '__custom__' ? customModel.trim() : modelId;
-
   const handleRun = () => {
-    if (!apiKey.trim()) {
-      setShowSettings(true);
-      return;
-    }
-    if (!resolvedModelId) {
-      setShowSettings(true);
-      return;
-    }
-    onRunAnalysis({ apiKey, modelId: resolvedModelId });
+    onRunAnalysis({ modelId: resolvedModelId || 'gemini-2.0-flash' });
   };
 
   const selectedModel = MODELS.find((m) => m.id === modelId) || MODELS[0];
@@ -74,7 +57,7 @@ export const AIPanel = ({ onClose, onRunAnalysis, isLoading, result, error }) =>
           <button
             onClick={() => setShowSettings((v) => !v)}
             className="opacity-70 hover:opacity-100 transition-opacity"
-            title="API 설정"
+            title="모델 설정"
           >
             <Settings size={15} />
           </button>
@@ -84,35 +67,12 @@ export const AIPanel = ({ onClose, onRunAnalysis, isLoading, result, error }) =>
         </div>
       </div>
 
-      {/* Settings */}
+      {/* Model Settings */}
       {showSettings && (
         <div className="border-b border-slate-200 bg-slate-50 p-4 flex-shrink-0 space-y-3">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Google AI 설정</p>
-
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">모델 설정</p>
           <div>
-            <label className="text-xs text-slate-600 mb-1 block">API 키</label>
-            <div className="flex gap-2">
-              <input
-                type={showKey ? 'text' : 'password'}
-                value={apiKey}
-                onChange={(e) => handleApiKeyChange(e.target.value)}
-                placeholder="AIzaSy..."
-                className="flex-1 text-xs border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white font-mono"
-              />
-              <button
-                onClick={() => setShowKey((v) => !v)}
-                className="px-2 text-xs text-slate-400 hover:text-slate-600"
-              >
-                {showKey ? '숨기기' : '보기'}
-              </button>
-            </div>
-            <p className="text-[10px] text-slate-400 mt-1">
-              aistudio.google.com에서 무료 발급 · localStorage에만 저장됩니다
-            </p>
-          </div>
-
-          <div>
-            <label className="text-xs text-slate-600 mb-1 block">모델 선택</label>
+            <label className="text-xs text-slate-600 mb-1 block">분석 모델 선택</label>
             <div className="relative">
               <select
                 value={modelId}
@@ -135,12 +95,11 @@ export const AIPanel = ({ onClose, onRunAnalysis, isLoading, result, error }) =>
               />
             )}
           </div>
-
           <button
             onClick={() => setShowSettings(false)}
             className="w-full text-xs py-1.5 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
           >
-            설정 저장
+            확인
           </button>
         </div>
       )}

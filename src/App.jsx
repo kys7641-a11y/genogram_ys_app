@@ -169,12 +169,12 @@ const AppInner = () => {
 
   const [aiError, setAiError] = useState('');
 
-  const runAIAnalysis = useCallback(async ({ apiKey, modelId } = {}) => {
+  const runAIAnalysis = useCallback(async ({ modelId } = {}) => {
     setAiLoading(true);
     setAiResult('');
     setAiError('');
     try {
-      const report = await analyzeDiagram({ nodes, edges, mode, apiKey, modelId });
+      const report = await analyzeDiagram({ nodes, edges, mode, modelId });
       setAiResult(report);
     } catch (e) {
       setAiError(e.message || '분석 중 오류가 발생했습니다.');

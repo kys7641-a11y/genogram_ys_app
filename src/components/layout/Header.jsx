@@ -62,9 +62,6 @@ export const Header = ({
           className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors text-sm font-bold"
         >
           <Sparkles size={16} /> AI 분석
-          <span className="text-[9px] bg-indigo-200 text-indigo-700 px-1.5 py-0.5 rounded ml-1">
-            DEMO
-          </span>
         </button>
         <div className="h-4 w-px bg-slate-300 mx-2" />
         <button

@@ -167,19 +167,21 @@ const AppInner = () => {
     }
   }, [selection, dispatch]);
 
-  const runAIAnalysis = useCallback(async () => {
+  const [aiError, setAiError] = useState('');
+
+  const runAIAnalysis = useCallback(async ({ apiKey, modelId } = {}) => {
     setAiLoading(true);
-    dispatch({ type: A.SET_UI, payload: { showAiPanel: true } });
     setAiResult('');
+    setAiError('');
     try {
-      const report = await analyzeDiagram({ nodes, edges, mode });
+      const report = await analyzeDiagram({ nodes, edges, mode, apiKey, modelId });
       setAiResult(report);
     } catch (e) {
-      setAiResult(`분석 중 오류가 발생했습니다: ${e.message}`);
+      setAiError(e.message || '분석 중 오류가 발생했습니다.');
     } finally {
       setAiLoading(false);
     }
-  }, [nodes, edges, mode, dispatch]);
+  }, [nodes, edges, mode]);
 
   const saveProject = useCallback(() => {
     const blob = new Blob(
@@ -275,7 +277,7 @@ const AppInner = () => {
           onLoadProject={handleLoadProject}
           onSaveProject={saveProject}
           onDownloadImage={downloadImage}
-          onRunAIAnalysis={runAIAnalysis}
+          onRunAIAnalysis={() => dispatch({ type: A.SET_UI, payload: { showAiPanel: true } })}
         />
 
         {selectedNode && interaction.state === 'idle' && (
@@ -331,8 +333,10 @@ const AppInner = () => {
           onClose={() =>
             dispatch({ type: A.SET_UI, payload: { showAiPanel: false } })
           }
+          onRunAnalysis={runAIAnalysis}
           isLoading={aiLoading}
           result={aiResult}
+          error={aiError}
         />
       )}
 

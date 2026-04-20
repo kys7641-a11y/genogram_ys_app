@@ -5,6 +5,7 @@ import {
 import { useDiagram } from '../../state/DiagramContext';
 import { ActionTypes as A } from '../../state/actions';
 import { APP_VERSION } from '../../constants/layout';
+import { Tooltip } from '../ui/Tooltip';
 
 export const Header = ({
   fileInputRef,
@@ -29,49 +30,54 @@ export const Header = ({
       </h1>
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
-          <button
-            onClick={() => dispatch({ type: A.UNDO })}
-            disabled={!canUndo}
-            aria-label="실행 취소"
-            className={`p-1.5 rounded-md transition-colors ${
-              !canUndo
-                ? 'text-slate-300 cursor-not-allowed'
-                : 'text-slate-600 hover:bg-white hover:shadow-sm'
-            }`}
-            title="실행 취소 (Ctrl+Z)"
-          >
-            <Undo size={18} />
-          </button>
-          <button
-            onClick={() => dispatch({ type: A.REDO })}
-            disabled={!canRedo}
-            aria-label="다시 실행"
-            className={`p-1.5 rounded-md transition-colors ${
-              !canRedo
-                ? 'text-slate-300 cursor-not-allowed'
-                : 'text-slate-600 hover:bg-white hover:shadow-sm'
-            }`}
-            title="다시 실행 (Ctrl+Y)"
-          >
-            <Redo size={18} />
-          </button>
+          <Tooltip label="실행 취소 (Ctrl+Z)" position="bottom">
+            <button
+              onClick={() => dispatch({ type: A.UNDO })}
+              disabled={!canUndo}
+              aria-label="실행 취소"
+              className={`p-1.5 rounded-md transition-colors ${
+                !canUndo
+                  ? 'text-slate-300 cursor-not-allowed'
+                  : 'text-slate-600 hover:bg-white hover:shadow-sm'
+              }`}
+            >
+              <Undo size={18} />
+            </button>
+          </Tooltip>
+          <Tooltip label="다시 실행 (Ctrl+Y)" position="bottom">
+            <button
+              onClick={() => dispatch({ type: A.REDO })}
+              disabled={!canRedo}
+              aria-label="다시 실행"
+              className={`p-1.5 rounded-md transition-colors ${
+                !canRedo
+                  ? 'text-slate-300 cursor-not-allowed'
+                  : 'text-slate-600 hover:bg-white hover:shadow-sm'
+              }`}
+            >
+              <Redo size={18} />
+            </button>
+          </Tooltip>
         </div>
         <div className="h-4 w-px bg-slate-300 mx-2" />
-        <button
-          onClick={onRunAIAnalysis}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors text-sm font-bold"
-        >
-          <Sparkles size={16} /> AI 분석
-        </button>
+        <Tooltip label="AI로 가족 관계 분석" position="bottom">
+          <button
+            onClick={onRunAIAnalysis}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors text-sm font-bold"
+          >
+            <Sparkles size={16} /> AI 분석
+          </button>
+        </Tooltip>
         <div className="h-4 w-px bg-slate-300 mx-2" />
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          aria-label="프로젝트 불러오기"
-          className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-indigo-600 transition-colors"
-          title="프로젝트 불러오기"
-        >
-          <FolderOpen size={18} />
-        </button>
+        <Tooltip label="프로젝트 불러오기" position="bottom">
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            aria-label="프로젝트 불러오기"
+            className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-indigo-600 transition-colors"
+          >
+            <FolderOpen size={18} />
+          </button>
+        </Tooltip>
         <input
           type="file"
           ref={fileInputRef}
@@ -79,22 +85,24 @@ export const Header = ({
           className="hidden"
           accept=".json"
         />
-        <button
-          onClick={onSaveProject}
-          aria-label="프로젝트 저장"
-          className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-indigo-600 transition-colors"
-          title="프로젝트 저장"
-        >
-          <Save size={18} />
-        </button>
-        <button
-          onClick={onDownloadImage}
-          aria-label="이미지 다운로드"
-          className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-indigo-600 transition-colors"
-          title="이미지 다운로드"
-        >
-          <ImageIcon size={18} />
-        </button>
+        <Tooltip label="프로젝트 저장" position="bottom">
+          <button
+            onClick={onSaveProject}
+            aria-label="프로젝트 저장"
+            className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-indigo-600 transition-colors"
+          >
+            <Save size={18} />
+          </button>
+        </Tooltip>
+        <Tooltip label="이미지 다운로드" position="bottom">
+          <button
+            onClick={onDownloadImage}
+            aria-label="이미지 다운로드"
+            className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-indigo-600 transition-colors"
+          >
+            <ImageIcon size={18} />
+          </button>
+        </Tooltip>
       </div>
     </header>
   );

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { STORAGE_KEY } from '../constants/layout';
+import { STORAGE_KEY, APP_VERSION } from '../constants/layout';
 import { ActionTypes as A } from '../state/actions';
 
 export const usePersistence = (state, dispatch) => {
@@ -30,6 +30,7 @@ export const usePersistence = (state, dispatch) => {
         edges: state.edges,
         mode: state.mode,
         showLabels: state.ui.showLabels,
+        version: APP_VERSION,
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     } catch (e) {

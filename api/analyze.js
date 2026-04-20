@@ -1,5 +1,8 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
+const MAX_NODES = 200;
+const MAX_EDGES = 400;
+
 const RELATION_LABELS = {
   marriage: '결혼',
   cohabitation: '동거',
@@ -103,8 +106,14 @@ export default async function handler(req, res) {
 
   const { nodes, edges, mode, modelId } = req.body;
 
-  if (!nodes || nodes.length === 0) {
+  if (!Array.isArray(nodes) || nodes.length === 0) {
     return res.status(400).json({ error: '분석할 구성원이 없습니다. 먼저 가계도/생태도를 작성해주세요.' });
+  }
+  if (!Array.isArray(edges)) {
+    return res.status(400).json({ error: 'edges 형식이 올바르지 않습니다.' });
+  }
+  if (nodes.length > MAX_NODES || edges.length > MAX_EDGES) {
+    return res.status(413).json({ error: `데이터가 너무 큽니다. (nodes ≤ ${MAX_NODES}, edges ≤ ${MAX_EDGES})` });
   }
 
   try {

@@ -6,7 +6,6 @@ import { STORAGE_KEY, APP_VERSION } from './constants/layout';
 import { snapToGrid } from './utils/geometry';
 import { applyAutoLayout } from './utils/autoLayout';
 import { downloadSvgAsPng } from './utils/exportImage';
-import { analyzeDiagram } from './services/aiAnalysis';
 import { usePersistence } from './hooks/usePersistence';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useCanvasInteraction } from './hooks/useCanvasInteraction';
@@ -15,7 +14,6 @@ import { Header } from './components/layout/Header';
 import { Canvas } from './components/canvas/Canvas';
 import { QuickActionToolbar } from './components/canvas/QuickActionToolbar';
 import { PropertyPanel } from './components/panels/PropertyPanel';
-import { AIPanel } from './components/panels/AIPanel';
 import { ContextMenu } from './components/panels/ContextMenu';
 import { ResetModal } from './components/panels/ResetModal';
 
@@ -26,8 +24,22 @@ const AppInner = () => {
   const svgRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  const [aiResult, setAiResult] = useState('');
-  const [aiLoading, setAiLoading] = useState(false);
+  const [theme, setTheme] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('theme') || 'light';
+    }
+    return 'light';
+  });
+
+  React.useEffect(() => {
+    const root = window.document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
 
   usePersistence(state, dispatch);
 
@@ -147,14 +159,14 @@ const AppInner = () => {
   useKeyboardShortcuts(state, dispatch, { onDelete: deleteSelection });
 
   const handleApplyAutoLayout = useCallback(() => {
-    const { nodes: next, changed } = applyAutoLayout(nodes, {
+    const { nodes: next, changed } = applyAutoLayout(nodes, edges, {
       snapEnabled: ui.snapEnabled,
     });
     if (changed) {
       dispatch({ type: A.REPLACE_NODES, payload: next });
       dispatch({ type: A.COMMIT_HISTORY });
     }
-  }, [nodes, ui.snapEnabled, dispatch]);
+  }, [nodes, edges, ui.snapEnabled, dispatch]);
 
   const startLinking = useCallback(() => {
     if (selection.type === 'node') {
@@ -166,22 +178,6 @@ const AppInner = () => {
       alert('연결할 시작 노드를 먼저 선택해주세요.');
     }
   }, [selection, dispatch]);
-
-  const [aiError, setAiError] = useState('');
-
-  const runAIAnalysis = useCallback(async ({ modelId } = {}) => {
-    setAiLoading(true);
-    setAiResult('');
-    setAiError('');
-    try {
-      const report = await analyzeDiagram({ nodes, edges, mode, modelId });
-      setAiResult(report);
-    } catch (e) {
-      setAiError(e.message || '분석 중 오류가 발생했습니다.');
-    } finally {
-      setAiLoading(false);
-    }
-  }, [nodes, edges, mode]);
 
   const saveProject = useCallback(() => {
     const blob = new Blob(
@@ -251,7 +247,7 @@ const AppInner = () => {
 
   return (
     <div
-      className="flex h-screen w-full bg-slate-100 overflow-hidden font-sans text-slate-800"
+      className="flex h-screen w-full bg-slate-100 dark:bg-slate-900 overflow-hidden font-sans text-slate-800 dark:text-slate-200 transition-colors duration-200"
       onPointerDown={() =>
         ui.contextMenu.visible &&
         dispatch({
@@ -277,7 +273,8 @@ const AppInner = () => {
           onLoadProject={handleLoadProject}
           onSaveProject={saveProject}
           onDownloadImage={downloadImage}
-          onRunAIAnalysis={() => dispatch({ type: A.SET_UI, payload: { showAiPanel: true } })}
+          theme={theme}
+          onToggleTheme={() => setTheme((prev) => (prev === 'light' ? 'dark' : 'light'))}
         />
 
         {selectedNode && interaction.state === 'idle' && (
@@ -307,6 +304,7 @@ const AppInner = () => {
           onSelectEdge={(id) =>
             dispatch({ type: A.SET_SELECTION, payload: { type: 'edge', id } })
           }
+          onBendPointerDown={canvasHandlers.handleBendPointerDown}
         />
       </main>
 
@@ -327,18 +325,6 @@ const AppInner = () => {
       />
 
       {selection.id && <PropertyPanel onDelete={deleteSelection} />}
-
-      {ui.showAiPanel && (
-        <AIPanel
-          onClose={() =>
-            dispatch({ type: A.SET_UI, payload: { showAiPanel: false } })
-          }
-          onRunAnalysis={runAIAnalysis}
-          isLoading={aiLoading}
-          result={aiResult}
-          error={aiError}
-        />
-      )}
 
       <style>{`
         .animate-spin-slow { animation: spin 4s linear infinite; }

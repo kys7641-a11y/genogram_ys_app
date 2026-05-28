@@ -13,6 +13,29 @@ export const downloadSvgAsPng = async (svgEl, filename = 'genogram.png') => {
 
   // Clone SVG so we can normalize viewBox without mutating the live canvas.
   const clone = svgEl.cloneNode(true);
+  
+  // Embed a styles block inside the cloned SVG so CSS variables and fonts resolve properly in stand-alone export.
+  const styleEl = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+  styleEl.textContent = `
+    svg {
+      --canvas-bg: #f8fafc;
+      --node-stroke: #1e293b;
+      --node-fill: #ffffff;
+      --node-text: #1e293b;
+      --node-text-index: #2563eb;
+      --grid-color: #cbd5e1;
+      --primary-color: #6366f1;
+    }
+    text {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    /* Hide active selections and bend handles on image export */
+    .animate-spin-slow, .bend-handle {
+      display: none !important;
+    }
+  `;
+  clone.insertBefore(styleEl, clone.firstChild);
+
   clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
   clone.setAttribute('width', width);
   clone.setAttribute('height', height);

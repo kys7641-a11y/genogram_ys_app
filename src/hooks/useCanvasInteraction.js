@@ -21,16 +21,41 @@ export const useCanvasInteraction = (state, dispatch, { svgRef }) => {
     }
   }, [dispatch, ui.contextMenu.visible]);
 
+  const handleBendPointerDown = useCallback(
+    (e, edgeId) => {
+      e.stopPropagation();
+      clearContextMenu();
+      const edge = edges.find((e) => e.id === edgeId);
+      if (!edge) return;
+
+      dispatch({
+        type: A.SET_SELECTION,
+        payload: { type: 'edge', id: edgeId },
+      });
+      dispatch({
+        type: A.SET_INTERACTION,
+        payload: {
+          state: 'dragging-bend',
+          data: {
+            edgeId,
+            startX: e.clientX,
+            startY: e.clientY,
+            initialOffset: edge.bendOffset || 0,
+          },
+        },
+      });
+    },
+    [edges, dispatch, clearContextMenu]
+  );
+
   const handlePointerDown = useCallback(
     (e, nodeId = null) => {
       if (!nodeId) {
-        // click on empty canvas clears node selection (but keeps edge selection)
-        if (state.selection.type === 'node') {
-          dispatch({
-            type: A.SET_SELECTION,
-            payload: { type: null, id: null },
-          });
-        }
+        // click on empty canvas clears selection
+        dispatch({
+          type: A.SET_SELECTION,
+          payload: { type: null, id: null },
+        });
       }
       if (e.button === 2 || e.button === 1 || e.altKey) return;
       clearContextMenu();
@@ -93,7 +118,6 @@ export const useCanvasInteraction = (state, dispatch, { svgRef }) => {
       }
     },
     [
-      state.selection.type,
       interaction,
       nodes,
       view,
@@ -106,11 +130,12 @@ export const useCanvasInteraction = (state, dispatch, { svgRef }) => {
   const handlePointerMove = useCallback(
     (e) => {
       const rect = svgRef.current?.getBoundingClientRect();
+      let mX = 0;
+      let mY = 0;
       if (rect) {
-        setMousePos({
-          x: (e.clientX - rect.left - view.x) / view.scale,
-          y: (e.clientY - rect.top - view.y) / view.scale,
-        });
+        mX = (e.clientX - rect.left - view.x) / view.scale;
+        mY = (e.clientY - rect.top - view.y) / view.scale;
+        setMousePos({ x: mX, y: mY });
       }
 
       if (interaction.state === 'dragging') {
@@ -122,9 +147,69 @@ export const useCanvasInteraction = (state, dispatch, { svgRef }) => {
           nx = snapToGrid(nx);
           ny = snapToGrid(ny);
         }
+
+        // Smart alignment snap to other nodes (within 8px)
+        const SNAP_THRESHOLD = 8;
+        const otherNodes = nodes.filter((n) => n.id !== interaction.data.id);
+        
+        let snapX = false;
+        let snapY = false;
+        for (const n of otherNodes) {
+          if (!snapX && Math.abs(nx - n.x) < SNAP_THRESHOLD) {
+            nx = n.x;
+            snapX = true;
+          }
+          if (!snapY && Math.abs(ny - n.y) < SNAP_THRESHOLD) {
+            ny = n.y;
+            snapY = true;
+          }
+        }
+
         dispatch({
           type: A.UPDATE_NODE,
           payload: { id: interaction.data.id, patch: { x: nx, y: ny } },
+        });
+      } else if (interaction.state === 'dragging-bend') {
+        const edge = edges.find((ed) => ed.id === interaction.data.edgeId);
+        if (!edge) return;
+        const sourceNode = nodes.find((n) => n.id === edge.source);
+        const targetNode = nodes.find((n) => n.id === edge.target);
+        if (!sourceNode || !targetNode) return;
+
+        const dy = (e.clientY - interaction.data.startY) / view.scale;
+        let newOffset = interaction.data.initialOffset;
+
+        // Orthogonal lines/bracket lines bend vertically. Direct lines bend perpendicular.
+        const isParentChild = edge.type === 'parent-child';
+        const isSibling = edge.type === 'siblings';
+
+        if (isParentChild) {
+          newOffset = interaction.data.initialOffset + dy;
+        } else if (isSibling) {
+          newOffset = interaction.data.initialOffset - dy; // upwards is positive
+        } else {
+          // Perpendicular projection for direct / marriage lines
+          const sX = sourceNode.x;
+          const sY = sourceNode.y;
+          const tX = targetNode.x;
+          const tY = targetNode.y;
+          const midpointX = (sX + tX) / 2;
+          const midpointY = (sY + tY) / 2;
+
+          const dx = tX - sX;
+          const ndy = tY - sY;
+          const len = Math.sqrt(dx * dx + ndy * ndy) || 1;
+          const perpX = -ndy / len;
+          const perpY = dx / len;
+
+          const vx = mX - midpointX;
+          const vy = mY - midpointY;
+          newOffset = vx * perpX + vy * perpY;
+        }
+
+        dispatch({
+          type: A.UPDATE_EDGE,
+          payload: { id: interaction.data.edgeId, patch: { bendOffset: newOffset } },
         });
       } else if (interaction.state === 'panning') {
         dispatch({
@@ -137,11 +222,11 @@ export const useCanvasInteraction = (state, dispatch, { svgRef }) => {
         });
       }
     },
-    [interaction, view, ui.snapEnabled, dispatch, svgRef]
+    [interaction, view, ui.snapEnabled, nodes, edges, dispatch, svgRef]
   );
 
   const handlePointerUp = useCallback(() => {
-    if (interaction.state === 'dragging') {
+    if (interaction.state === 'dragging' || interaction.state === 'dragging-bend') {
       dispatch({ type: A.COMMIT_HISTORY });
       dispatch({
         type: A.SET_INTERACTION,
@@ -193,5 +278,6 @@ export const useCanvasInteraction = (state, dispatch, { svgRef }) => {
     handlePointerUp,
     handleWheel,
     handleContextMenu,
+    handleBendPointerDown,
   };
 };

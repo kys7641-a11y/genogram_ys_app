@@ -83,6 +83,7 @@ export const Canvas = ({
   onWheel,
   onContextMenu,
   onSelectEdge,
+  onBendPointerDown,
 }) => {
   const { nodes, edges } = state;
   const { nodesById, meta } = useEdgeMeta(nodes, edges);
@@ -94,7 +95,7 @@ export const Canvas = ({
 
   return (
     <div
-      className="flex-1 bg-slate-50 overflow-hidden relative cursor-crosshair touch-none outline-none"
+      className="flex-1 bg-[var(--canvas-bg)] overflow-hidden relative cursor-crosshair touch-none outline-none transition-colors duration-200"
       tabIndex={0}
       onPointerDown={(e) => onPointerDown(e)}
       onPointerMove={onPointerMove}
@@ -104,7 +105,7 @@ export const Canvas = ({
       <div
         className="absolute inset-0 pointer-events-none opacity-20"
         style={{
-          backgroundImage: `linear-gradient(#cbd5e1 1px, transparent 1px), linear-gradient(90deg, #cbd5e1 1px, transparent 1px)`,
+          backgroundImage: `linear-gradient(var(--grid-color) 1px, transparent 1px), linear-gradient(90deg, var(--grid-color) 1px, transparent 1px)`,
           backgroundSize: `${GRID_SIZE * view.scale}px ${GRID_SIZE * view.scale}px`,
           backgroundPosition: `${view.x}px ${view.y}px`,
         }}
@@ -129,9 +130,53 @@ export const Canvas = ({
                 isSelected={selection.id === edge.id}
                 showLabels={showLabels}
                 onClick={onSelectEdge}
+                onBendPointerDown={onBendPointerDown}
               />
             );
           })}
+
+          {/* Alignment Guidelines */}
+          {React.useMemo(() => {
+            if (interaction.state !== 'dragging' || !interaction.data?.id) return [];
+            const draggingNode = nodes.find((n) => n.id === interaction.data.id);
+            if (!draggingNode) return [];
+
+            const lines = [];
+            nodes.forEach((n) => {
+              if (n.id === draggingNode.id) return;
+              if (Math.abs(n.x - draggingNode.x) < 1) {
+                lines.push({
+                  id: `v_${n.id}`,
+                  type: 'vertical',
+                  x: n.x,
+                  y1: Math.min(n.y, draggingNode.y) - 150,
+                  y2: Math.max(n.y, draggingNode.y) + 150,
+                });
+              }
+              if (Math.abs(n.y - draggingNode.y) < 1) {
+                lines.push({
+                  id: `h_${n.id}`,
+                  type: 'horizontal',
+                  y: n.y,
+                  x1: Math.min(n.x, draggingNode.x) - 150,
+                  x2: Math.max(n.x, draggingNode.x) + 150,
+                });
+              }
+            });
+            return lines;
+          }, [interaction, nodes]).map((line) => (
+            <line
+              key={line.id}
+              x1={line.type === 'vertical' ? line.x : line.x1}
+              y1={line.type === 'vertical' ? line.y1 : line.y}
+              x2={line.type === 'vertical' ? line.x : line.x2}
+              y2={line.type === 'vertical' ? line.y2 : line.y}
+              stroke="var(--primary-color)"
+              strokeWidth="1.5"
+              strokeDasharray="4,4"
+              opacity="0.8"
+            />
+          ))}
 
           {nodes.map((node) => (
             <NodeComponent

@@ -4,6 +4,7 @@ import {
   getBoundaryPoint,
   getManhattanPath,
   getZigzagPath,
+  getCurvePath,
   getNodeDimensions,
 } from '../../utils/geometry';
 
@@ -23,6 +24,7 @@ export const EdgeComponent = React.memo(
     isSelected,
     showLabels,
     onClick,
+    onBendPointerDown,
   }) => {
     if (!sourceNode || !targetNode) return null;
     const config = getRelationConfig(edge.type);
@@ -86,34 +88,64 @@ export const EdgeComponent = React.memo(
       }
     }
 
+    const bendOffset = edge.bendOffset || 0;
+    const midpointX = (sX + tX) / 2;
+    const midpointY = (sY + tY) / 2;
+
     let pathData;
     let midX;
     let midY;
+    let hx = midpointX;
+    let hy = midpointY;
 
-    if (config.logic === 'horizontal') {
-      pathData = `M ${sX} ${sY} L ${tX} ${tY}`;
-      midX = (sX + tX) / 2;
-      midY = (sY + tY) / 2 - 12;
-    } else if (config.logic === 'orthogonal') {
-      pathData = getManhattanPath(sX, sY, tX, tY, 'parent-child');
-      midX = tX + 16;
-      midY = (sY + tY) / 2;
+    // Calculate bend handle position (hx, hy) based on edge routing type
+    if (config.logic === 'orthogonal') {
+      hx = (sX + tX) / 2;
+      hy = (sY + tY) / 2 + bendOffset;
     } else if (config.logic === 'bracket') {
-      pathData = getManhattanPath(sX, sY, tX, tY, 'bracket');
-      midX = (sX + tX) / 2;
-      midY = Math.min(sY, tY) - 62;
+      hx = (sX + tX) / 2;
+      hy = Math.min(sY, tY) - 50 - bendOffset;
     } else {
-      pathData =
-        config.style === 'zigzag'
-          ? getZigzagPath(sX, sY, tX, tY)
-          : `M ${sX} ${sY} L ${tX} ${tY}`;
+      const dx = tX - sX;
+      const dy = tY - sY;
+      const len = Math.sqrt(dx * dx + dy * dy) || 1;
+      const perpX = -dy / len;
+      const perpY = dx / len;
+      hx = midpointX + perpX * bendOffset;
+      hy = midpointY + perpY * bendOffset;
+    }
+
+    // Determine path data and label coordinates
+    if (config.logic === 'horizontal') {
+      if (edge.isCurve || Math.abs(bendOffset) > 0.1) {
+        pathData = getCurvePath(sX, sY, tX, tY, bendOffset);
+      } else {
+        pathData = `M ${sX} ${sY} L ${tX} ${tY}`;
+      }
+      midX = hx;
+      midY = hy - 14;
+    } else if (config.logic === 'orthogonal') {
+      pathData = getManhattanPath(sX, sY, tX, tY, 'parent-child', bendOffset);
+      midX = tX + 16;
+      midY = (sY + tY) / 2 + bendOffset;
+    } else if (config.logic === 'bracket') {
+      pathData = getManhattanPath(sX, sY, tX, tY, 'bracket', bendOffset);
       midX = (sX + tX) / 2;
-      midY = (sY + tY) / 2 - 14;
+      midY = Math.min(sY, tY) - 62 - bendOffset;
+    } else {
+      if (edge.isCurve || Math.abs(bendOffset) > 0.1) {
+        pathData = getCurvePath(sX, sY, tX, tY, bendOffset);
+      } else {
+        pathData =
+          config.style === 'zigzag'
+            ? getZigzagPath(sX, sY, tX, tY)
+            : `M ${sX} ${sY} L ${tX} ${tY}`;
+      }
+      midX = hx;
+      midY = hy - 14;
     }
 
     const strokeColor = isSelected ? '#6366f1' : config.color;
-    const midpointX = (sX + tX) / 2;
-    const midpointY = (sY + tY) / 2;
 
     return (
       <g
@@ -121,7 +153,7 @@ export const EdgeComponent = React.memo(
           e.stopPropagation();
           onClick(edge.id);
         }}
-        className="cursor-pointer group"
+        className="cursor-pointer group animate-fade-in"
       >
         <path d={pathData} stroke="transparent" strokeWidth="15" fill="none" />
         <path
@@ -163,25 +195,42 @@ export const EdgeComponent = React.memo(
             <text
               textAnchor="middle"
               dominantBaseline="central"
-              fontSize="12"
+              fontSize="11"
               fill={config.color}
-              stroke="white"
+              stroke="var(--canvas-bg)"
               strokeWidth="4"
               strokeLinejoin="round"
-              className="font-bold pointer-events-none select-none opacity-90"
+              className="font-bold pointer-events-none select-none opacity-90 transition-colors"
             >
               {config.label}
             </text>
             <text
               textAnchor="middle"
               dominantBaseline="central"
-              fontSize="12"
+              fontSize="11"
               fill={config.color}
               className="font-bold pointer-events-none select-none"
             >
               {config.label}
             </text>
           </g>
+        )}
+
+        {/* Bend adjustment handle */}
+        {isSelected && onBendPointerDown && (
+          <circle
+            cx={hx}
+            cy={hy}
+            r="6"
+            fill="var(--primary-color)"
+            stroke="white"
+            strokeWidth="2.5"
+            className="bend-handle hover:scale-125 transition-transform cursor-move"
+            onPointerDown={(e) => {
+              e.stopPropagation();
+              onBendPointerDown(e, edge.id);
+            }}
+          />
         )}
       </g>
     );

@@ -12,7 +12,6 @@ export const initialState = {
   ui: {
     snapEnabled: true,
     showLabels: true,
-    showAiPanel: false,
     isResetModalOpen: false,
     contextMenu: { visible: false, x: 0, y: 0, nodeId: null },
   },

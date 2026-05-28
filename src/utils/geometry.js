@@ -1,7 +1,7 @@
 import { THEME_CONFIG } from '../constants/theme';
 import { GRID_SIZE } from '../constants/layout';
 
-export const snapToGrid = (val) => Math.round(val / GRID_SIZE) * GRID_SIZE;
+export const snapToGrid = (val) => (Math.round(val / GRID_SIZE) * GRID_SIZE) || 0;
 
 export const getNodeDimensions = (node) => {
   if (node.type === 'family') {
@@ -35,18 +35,31 @@ export const getBoundaryPoint = (node, targetX, targetY, gap = 0) => {
   };
 };
 
-export const getManhattanPath = (x1, y1, x2, y2, type = 'default') => {
-  const midY = (y1 + y2) / 2;
+export const getCurvePath = (x1, y1, x2, y2, bendOffset = 0) => {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const len = Math.sqrt(dx * dx + dy * dy) || 1;
+  const perpX = -dy / len;
+  const perpY = dx / len;
+  const ctrlX = (x1 + x2) / 2 + perpX * bendOffset;
+  const ctrlY = (y1 + y2) / 2 + perpY * bendOffset;
+  return `M ${x1} ${y1} Q ${ctrlX} ${ctrlY} ${x2} ${y2}`;
+};
+
+export const getManhattanPath = (x1, y1, x2, y2, type = 'default', bendOffset = 0) => {
   if (type === 'parent-child') {
-    return y2 < y1
-      ? `M ${x1} ${y1} L ${x2} ${y2}`
-      : `M ${x1} ${y1} L ${x1} ${midY} L ${x2} ${midY} L ${x2} ${y2}`;
+    if (y2 < y1) {
+      return `M ${x1} ${y1} L ${x2} ${y2}`;
+    }
+    const midY = (y1 + y2) / 2 + bendOffset;
+    return `M ${x1} ${y1} L ${x1} ${midY} L ${x2} ${midY} L ${x2} ${y2}`;
   }
   if (type === 'bracket') {
-    const topY = Math.min(y1, y2) - 50;
+    const topY = Math.min(y1, y2) - 50 - bendOffset;
     return `M ${x1} ${y1} L ${x1} ${topY} L ${x2} ${topY} L ${x2} ${y2}`;
   }
-  return `M ${x1} ${y1} L ${x2} ${y1} L ${x2} ${y2}`;
+  const midX = (x1 + x2) / 2 + bendOffset;
+  return `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`;
 };
 
 export const getZigzagPath = (x1, y1, x2, y2) => {

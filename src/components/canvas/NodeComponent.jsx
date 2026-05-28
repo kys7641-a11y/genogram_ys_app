@@ -10,12 +10,12 @@ export const NodeComponent = React.memo(
     const isFamily = node.type === 'family';
 
     const strokeColor = isSelected
-      ? THEME_CONFIG.colors.selection
+      ? 'var(--primary-color)'
       : node.isIndex
-      ? THEME_CONFIG.colors.indexNode
-      : '#1e293b';
+      ? 'var(--node-text-index)'
+      : 'var(--node-stroke)';
     const strokeWidth = isSelected ? 3 : node.isIndex ? 3 : 2;
-    const fillColor = THEME_CONFIG.colors.nodeFill;
+    const fillColor = 'var(--node-fill)';
     const fontSize = node.fontSize || THEME_CONFIG.sizes.defaultFont;
     const nameYOffset = isFamily ? 35 + (fontSize - 10) : 4;
     const { rx } = getNodeDimensions(node);
@@ -31,7 +31,7 @@ export const NodeComponent = React.memo(
           <circle
             r={isFamily ? 32 : rx + 12}
             fill="none"
-            stroke={THEME_CONFIG.colors.primary}
+            stroke="var(--primary-color)"
             strokeWidth="2"
             strokeDasharray="4,4"
             className="animate-spin-slow opacity-50"
@@ -112,9 +112,8 @@ export const NodeComponent = React.memo(
           y={nameYOffset}
           textAnchor="middle"
           style={{ fontSize: `${fontSize}px` }}
-          className={`font-bold select-none pointer-events-none ${
-            node.isIndex ? 'fill-blue-600' : 'fill-slate-800'
-          }`}
+          fill={node.isIndex ? 'var(--node-text-index)' : 'var(--node-text)'}
+          className="font-bold select-none pointer-events-none transition-colors"
         >
           {node.name}
         </text>
@@ -124,7 +123,7 @@ export const NodeComponent = React.memo(
             y={nameYOffset + fontSize * 0.9}
             textAnchor="middle"
             style={{ fontSize: `${Math.max(10, fontSize * 0.8)}px` }}
-            className="fill-slate-500 select-none pointer-events-none"
+            className="fill-slate-500 dark:fill-slate-400 select-none pointer-events-none"
           >
             {CURRENT_YEAR - node.birthYear}세
           </text>

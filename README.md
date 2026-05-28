@@ -14,7 +14,6 @@
 - Undo / Redo (Ctrl+Z / Ctrl+Y)
 - 프로젝트 JSON 저장/불러오기
 - PNG 이미지 내보내기
-- AI 분석 리포트 (데모)
 
 ## 기술 스택
 
@@ -23,21 +22,32 @@
 - lucide-react
 - 상태 관리: `useReducer` + Context
 
-## 로컬 실행
+## 테스트 실행
+
+수학 기하 연산, 상태 관리 Reducer, 가족 트리 및 생태도 자동 정렬(Auto-Layout) 알고리즘에 대한 단위 테스트를 실행합니다:
 
 ```bash
-npm install
-npm run dev
+npm run test
 ```
 
-브라우저에서 http://localhost:5173 접속.
+## 빌드 및 배포
 
-## 빌드
+### 1. 일반 웹 호스팅 빌드 (Vercel, GitHub Pages 등)
 
 ```bash
 npm run build
 npm run preview
 ```
+빌드 시 `dist/` 폴더 내에 정적 웹 리소스가 생성됩니다.
+
+### 2. 독립형 단일 파일 (Offline Standalone HTML) 빌드
+
+인터넷 접속이 원활하지 않거나 방화벽이 엄격한 사회복지 기관/가정 방문 상담 환경에서 유용하게 쓸 수 있도록, 모든 JS/CSS/아이콘 리소스를 포함한 **오프라인용 단일 HTML 파일**을 빌드합니다:
+
+```bash
+npm run build:single
+```
+빌드가 완료되면 `dist-single/index.html` 파일이 생성됩니다. 이 파일 하나만 USB 등에 복사해서 들고 다니며 오프라인 브라우저에서 실행(더블클릭)해도 가계도 그리기, 캔버스 드래그, 꺾임 수정 및 로컬 저장 기능이 정상 작동합니다.
 
 ## Vercel 배포
 
@@ -55,12 +65,11 @@ src/
 ├── utils/       # 기하 계산, 자동 레이아웃, PNG 내보내기
 ├── state/       # reducer + Context + actions
 ├── hooks/       # persistence, keyboard, canvas interaction
-├── services/    # AI 분석 (mock)
 ├── components/
 │   ├── icons/
 │   ├── layout/  # Sidebar, Header
 │   ├── canvas/  # Canvas, Node, Edge, markers, toolbar
-│   └── panels/  # PropertyPanel, AIPanel, ContextMenu, ResetModal
+│   └── panels/  # PropertyPanel, ContextMenu, ResetModal
 ├── App.jsx
 └── main.jsx
 ```
